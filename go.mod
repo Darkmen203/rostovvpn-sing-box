@@ -125,3 +125,4 @@ require (
 replace github.com/sagernet/wireguard-go => github.com/Darkmen203/wireguard-go v0.0.0-20250914173906-1dace1f54e3c
 
 replace github.com/xtls/xray-core => github.com/Darkmen203/xray-core v0.0.0-20240902024714-0fcb0895bb4b
+
