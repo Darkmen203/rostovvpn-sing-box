@@ -20,7 +20,7 @@ type Router interface {
 	PreStarter
 	PostStarter
 
-	SortedOutboundsByDependenciesHiddify() []Outbound //hiddify
+	SortedOutboundsByDependenciesRostovVPN() []Outbound //rostovvpn
 	Outbounds() []Outbound
 	Outbound(tag string) (Outbound, bool)
 	DefaultOutbound(network string) (Outbound, error)

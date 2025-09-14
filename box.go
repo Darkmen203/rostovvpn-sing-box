@@ -119,8 +119,8 @@ func New(options Options) (*Box, error) {
 		}
 		inbounds = append(inbounds, in)
 	}
-	var lastErr error      //hiddify
-	var lastErrDesc string //hiddify
+	var lastErr error      //rostovvpn
+	var lastErrDesc string //rostovvpn
 	for i, outboundOptions := range options.Outbounds {
 		var out adapter.Outbound
 		var tag string
@@ -136,20 +136,20 @@ func New(options Options) (*Box, error) {
 			tag,
 			outboundOptions)
 		if err != nil {
-			lastErrDesc = fmt.Sprintf("parse outbound[%d] error: %+v", i, err) //hiddify
+			lastErrDesc = fmt.Sprintf("parse outbound[%d] error: %+v", i, err) //rostovvpn
 			fmt.Println(lastErrDesc)
-			lastErr = err //hiddify
+			lastErr = err //rostovvpn
 			out = outbound.NewInvalidConfig(
 				logFactory.NewLogger(F.ToString("outbound/", outboundOptions.Type, "[", tag, "]")),
 				tag,
-				err) //hiddify
+				err) //rostovvpn
 		}
 
 		outbounds = append(outbounds, out)
 	}
-	if len(outbounds) == 0 && lastErr != nil { //hiddify
-		return nil, E.Cause(lastErr, lastErrDesc) //hiddify
-	} //hiddify
+	if len(outbounds) == 0 && lastErr != nil { //rostovvpn
+		return nil, E.Cause(lastErr, lastErrDesc) //rostovvpn
+	} //rostovvpn
 	err = router.Initialize(inbounds, outbounds, func() adapter.Outbound {
 		out, oErr := outbound.New(ctx, router, logFactory.NewLogger("outbound/direct"), "direct", option.Outbound{Type: "direct", Tag: "default"})
 		common.Must(oErr)
@@ -359,7 +359,7 @@ func (s *Box) Close() error {
 		})
 		monitor.Finish()
 	}
-	for i, out := range s.Router().SortedOutboundsByDependenciesHiddify() {
+	for i, out := range s.Router().SortedOutboundsByDependenciesRostovVPN() {
 		monitor.Start("close outbound/", out.Type(), "[", out.Tag(), "]")
 		errors = E.Append(errors, common.Close(out), func(err error) error {
 			return E.Cause(err, "close outbound/", out.Type(), "[", i, "]")

@@ -10,6 +10,10 @@ dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/Darkmen203/wireguard-go v0.0.0-20250914173906-1dace1f54e3c h1:MuilVo+cWBMgRVNBzEs/yAOSjzVd4y/I9Bb0xszFw/A=
+github.com/Darkmen203/wireguard-go v0.0.0-20250914173906-1dace1f54e3c/go.mod h1:YbL4TKHRR6APYQv3U2RGfwLDpPYSyWz6oUlpISBEzBE=
+github.com/Darkmen203/xray-core v0.0.0-20240902024714-0fcb0895bb4b h1:Adq0jJltRfTObbzbDYM+LctdK3QxqEfmdqqeW2x1fgE=
+github.com/Darkmen203/xray-core v0.0.0-20240902024714-0fcb0895bb4b/go.mod h1:kYMVgEAXeeoD9I08aS15jLRv4RF88vc1uf8xIjlnskU=
 github.com/OmarTariq612/goech v0.0.0-20240405204721-8e2e1dafd3a0 h1:Wo41lDOevRJSGpevP+8Pk5bANX7fJacO2w04aqLiC5I=
 github.com/OmarTariq612/goech v0.0.0-20240405204721-8e2e1dafd3a0/go.mod h1:FVGavL/QEBQDcBpr3fAojoK17xX5k9bicBphrOpP7uM=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
@@ -98,10 +102,6 @@ github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:Fecb
 github.com/grpc-ecosystem/grpc-gateway v1.5.0/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
 github.com/hashicorp/yamux v0.1.1 h1:yrQxtgseBDrq9Y652vSRDvsKCJKOUD+GzTS4Y0Y8pvE=
 github.com/hashicorp/yamux v0.1.1/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbgIO0SLnQ=
-github.com/hiddify/wireguard-go v0.0.0-20240727191222-383c1da14ff1 h1:xdbHlZtzs+jijAxy85qal835GglwmjohA/srHT8gm9s=
-github.com/hiddify/wireguard-go v0.0.0-20240727191222-383c1da14ff1/go.mod h1:K4J7/npM+VAMUeUmTa2JaA02JmyheP0GpRBOUvn3ecc=
-github.com/hiddify/xray-core v0.0.0-20240902024714-0fcb0895bb4b h1:fF9wb8XnL4dk/suRK1cOKPN1x1BG3F5iHN3Aq2mrKaE=
-github.com/hiddify/xray-core v0.0.0-20240902024714-0fcb0895bb4b/go.mod h1:kYMVgEAXeeoD9I08aS15jLRv4RF88vc1uf8xIjlnskU=
 github.com/imkira/go-observer/v2 v2.0.0-20230629064422-8e0b61f11f1b h1:1+115FqGoS8p6Iry9AYmrcWDvSveH0F7P2nX1LU00qg=
 github.com/imkira/go-observer/v2 v2.0.0-20230629064422-8e0b61f11f1b/go.mod h1:XCscqBi1KKh7GcVDDAdkT/Cf6WDjnDAA1XM3nwmA0Ag=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=

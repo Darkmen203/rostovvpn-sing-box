@@ -92,7 +92,7 @@ func (s *CommandServer) handleGroupConn(conn net.Conn, onlyGroupItems bool) erro
 			for urlTestUpdateStream.HasNext() {
 				urlTestUpdateStream.Next()
 				// val := urlTestUpdateStream.Next()
-				// log.Trace("Hiddify! Receive a change for group info ", val)
+				// log.Trace("RostovVPN! Receive a change for group info ", val)
 			}
 		}
 	}

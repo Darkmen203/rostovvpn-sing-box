@@ -129,7 +129,7 @@ type DialerOptions struct {
 	DomainStrategy      DomainStrategy      `json:"domain_strategy,omitempty"`
 	FallbackDelay       Duration            `json:"fallback_delay,omitempty"`
 	IsWireGuardListener bool                `json:"-"`
-	TLSFragment         *TLSFragmentOptions `json:"tls_fragment,omitempty"` //hiddify
+	TLSFragment         *TLSFragmentOptions `json:"tls_fragment,omitempty"` //rostovvpn
 }
 
 func (o *DialerOptions) TakeDialerOptions() DialerOptions {

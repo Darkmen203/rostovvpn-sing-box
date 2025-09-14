@@ -74,7 +74,7 @@ func NewWireGuard(ctx context.Context, router adapter.Router, logger log.Context
 		ctx:          ctx,
 		workers:      options.Workers,
 		pauseManager: service.FromContext[pause.Manager](ctx),
-		hforwarder:   hforwarder, //hiddify
+		hforwarder:   hforwarder, //rostovVPN
 	}
 	outbound.fakePackets = []int{0, 0}
 	outbound.fakePacketsSize = []int{0, 0}
@@ -251,9 +251,9 @@ func (w *WireGuard) start() error {
 }
 
 func (w *WireGuard) Close() error {
-	if w.hforwarder != nil { //hiddify
-		w.hforwarder.Close() //hiddify
-	} //hiddify
+	if w.hforwarder != nil { //rostovVPN
+		w.hforwarder.Close() //rostovVPN
+	} //rostovVPN
 	if w.device != nil {
 		w.device.Close()
 	}
@@ -265,29 +265,29 @@ func (w *WireGuard) Close() error {
 }
 
 func (w *WireGuard) InterfaceUpdated() {
-	w.logger.Info("Hiddify! Wirguard! Interface updated!XXX")
+	w.logger.Info("RostovVPN! Wirguard! Interface updated!XXX")
 	// <-time.After(10 * time.Millisecond)
 	// if true {
 	// 	return
 	// }
 	if w.pauseManager.IsNetworkPaused() {
-		w.logger.Error("Hiddify! Network is paused!... returning")
+		w.logger.Error("RostovVPN! Network is paused!... returning")
 		return
 	}
 	<-time.After(50 * time.Millisecond)
 	err := w.device.BindUpdate()
 	<-time.After(50 * time.Millisecond)
-	// err := fmt.Errorf("Hiddify! downing wireguard interface failed")
+	// err := fmt.Errorf("RostovVPN! downing wireguard interface failed")
 
 	if err != nil {
-		w.logger.Error("Hiddify! bind update failed", err)
+		w.logger.Error("RostovVPN! bind update failed", err)
 	}
-	// w.logger.Error("Hiddify! downing...")
+	// w.logger.Error("RostovVPN! downing...")
 	// e1 := w.device.Down()
 	// if e1 != nil {
-	// 	w.logger.Error("Hiddify! downing wireguard interface failed", e1)
+	// 	w.logger.Error("RostovVPN! downing wireguard interface failed", e1)
 	// } else {
-	// 	w.logger.Warn("Hiddify! downing   Ok!")
+	// 	w.logger.Warn("RostovVPN! downing   Ok!")
 	// }
 	// for i := 0; i < 5; i++ {
 	// 	if !w.pauseManager.IsNetworkPaused() {
@@ -305,36 +305,36 @@ func (w *WireGuard) InterfaceUpdated() {
 	// 	}
 	// }
 	// <-time.After(100 * time.Millisecond)
-	// w.logger.Warn("Hiddify! uping.... wireguard interface")
+	// w.logger.Warn("RostovVPN! uping.... wireguard interface")
 	// e2 := w.device.Up()
 	// if e2 != nil {
-	// 	w.logger.Error("Hiddify! Uping wireguard interface failed", e2)
+	// 	w.logger.Error("RostovVPN! Uping wireguard interface failed", e2)
 	// } else {
-	// 	w.logger.Warn("Hiddify! OK!Updating wireguard interface")
+	// 	w.logger.Warn("RostovVPN! OK!Updating wireguard interface")
 
 	// }
 	// } else {
-	// 	w.logger.Warn("Hiddify! OK2!Updating wireguard interface")
+	// 	w.logger.Warn("RostovVPN! OK2!Updating wireguard interface")
 	// }
 	return
 }
 
 func (w *WireGuard) onPauseUpdated(event int) {
-	w.logger.Info("Hiddify! Wirguard! on Pause updated! event=", event)
+	w.logger.Info("RostovVPN! Wirguard! on Pause updated! event=", event)
 	// <-time.After(1000 * time.Millisecond)
 	switch event {
 
 	case pause.EventDevicePaused:
 		w.device.Down()
-	case pause.EventNetworkPause: //hiddify already handled in Interface Updated
+	case pause.EventNetworkPause: //rostovVPN already handled in Interface Updated
 		err := w.device.Down()
-		w.logger.Info("Hiddify! Wirguard! downing net! err=", err)
+		w.logger.Info("RostovVPN! Wirguard! downing net! err=", err)
 		<-time.After(50 * time.Millisecond)
 	case pause.EventDeviceWake:
 		w.device.Up()
-	case pause.EventNetworkWake: //hiddify already handled in Interface Updated
+	case pause.EventNetworkWake: //rostovVPN already handled in Interface Updated
 		err := w.device.Up()
-		w.logger.Info("Hiddify! Wirguard! Uping net! err=", err)
+		w.logger.Info("RostovVPN! Wirguard! Uping net! err=", err)
 		<-time.After(50 * time.Millisecond)
 	}
 }

@@ -58,7 +58,7 @@ type Router struct {
 	dnsLogger                            log.ContextLogger
 	inboundByTag                         map[string]adapter.Inbound
 	outbounds                            []adapter.Outbound
-	sortedOutboundsByDependenciesHiddify []adapter.Outbound //hiddify
+	sortedOutboundsByDependenciesRostovVPN []adapter.Outbound //rostovvpn
 	outboundByTag                        map[string]adapter.Outbound
 	rules                                []adapter.Rule
 	defaultDetour                        string
@@ -73,7 +73,7 @@ type Router struct {
 	geositeCache                         map[string]adapter.Rule
 	needFindProcess                      bool
 	dnsClient                            *dns.Client
-	staticDns                            map[string]StaticDNSEntry //Hiddify
+	staticDns                            map[string]StaticDNSEntry //rostovvpn
 	defaultDomainStrategy                dns.DomainStrategy
 	dnsRules                             []adapter.DNSRule
 	ruleSets                             []adapter.RuleSet
@@ -139,7 +139,7 @@ func NewRouter(
 		needPackageManager: common.Any(inbounds, func(inbound option.Inbound) bool {
 			return len(inbound.TunOptions.IncludePackage) > 0 || len(inbound.TunOptions.ExcludePackage) > 0
 		}),
-		staticDns: createEntries(dnsOptions.StaticIPs), //hiddify
+		staticDns: createEntries(dnsOptions.StaticIPs), //rostovvpn
 	}
 	router.dnsClient = dns.NewClient(dns.ClientOptions{
 		DisableCache:     dnsOptions.DNSClientOptions.DisableCache,
@@ -1144,7 +1144,7 @@ func (r *Router) InterfaceFinder() control.InterfaceFinder {
 }
 
 func (r *Router) UpdateInterfaces() error {
-	r.logger.Info("Hiddify!UpdateInterfaces ")
+	r.logger.Info("RostovVPN!UpdateInterfaces ")
 	if r.platformInterface == nil || !r.platformInterface.UsePlatformInterfaceGetter() {
 		return r.interfaceFinder.Update()
 	} else {
@@ -1244,7 +1244,7 @@ func (r *Router) NewError(ctx context.Context, err error) {
 }
 
 func (r *Router) notifyNetworkUpdate(event int) {
-	r.logger.Info("Hiddify!notifyNetworkUpdate ", event)
+	r.logger.Info("RostovVPN!notifyNetworkUpdate ", event)
 	if event == tun.EventNoRoute {
 		r.pauseManager.NetworkPause()
 		r.logger.Error("missing default interface")
@@ -1271,10 +1271,10 @@ func (r *Router) notifyNetworkUpdate(event int) {
 }
 
 func (r *Router) ResetNetwork() error {
-	r.logger.Info("Hiddify!Reseting Network")
+	r.logger.Info("RostovVPN!Reseting Network")
 	conntrack.Close()
 
-	for _, outbound := range r.sortedOutboundsByDependenciesHiddify {
+	for _, outbound := range r.sortedOutboundsByDependenciesRostovVPN {
 		listener, isListener := outbound.(adapter.InterfaceUpdateListener)
 		if isListener {
 			listener.InterfaceUpdated()
@@ -1302,8 +1302,8 @@ func (r *Router) updateWIFIState() {
 	}
 }
 
-func (r *Router) SortedOutboundsByDependenciesHiddify() []adapter.Outbound { //hiddify
-	return r.sortedOutboundsByDependenciesHiddify
+func (r *Router) SortedOutboundsByDependenciesRostovVPN() []adapter.Outbound { //rostovvpn
+	return r.sortedOutboundsByDependenciesRostovVPN
 }
 func (r *Router) doSortOutboundsByDependencies() {
 	started := make(map[string]bool)
@@ -1317,7 +1317,7 @@ func (r *Router) doSortOutboundsByDependencies() {
 		for _, d := range out.Dependencies() {
 			appendOutbounds(r.outboundByTag[d])
 		}
-		r.sortedOutboundsByDependenciesHiddify = append(r.sortedOutboundsByDependenciesHiddify, out)
+		r.sortedOutboundsByDependenciesRostovVPN = append(r.sortedOutboundsByDependenciesRostovVPN, out)
 		started[out.Tag()] = true
 	}
 

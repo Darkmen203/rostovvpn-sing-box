@@ -15,5 +15,5 @@ const (
 	CommandGetSystemProxyStatus
 	CommandSetSystemProxyEnabled
 
-	CommandGroupInfoOnly//hiddify
+	CommandGroupInfoOnly//rostovvpn
 )
