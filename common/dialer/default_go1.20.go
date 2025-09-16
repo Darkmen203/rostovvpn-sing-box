@@ -1,13 +1,19 @@
-//go:build go1.20 && !windows
+//go:build go1.20
 
 package dialer
 
 import (
 	"net"
+
+	"github.com/metacubex/tfo-go"
 )
 
-type tcpDialer = ExtendedTCPDialer
+type tcpDialer = tfo.Dialer
 
-func newTCPDialer(dialer net.Dialer, tfoEnabled bool, tlsFragment *TLSFragment) (tcpDialer, error) {
-	return tcpDialer{Dialer: dialer, DisableTFO: !tfoEnabled, TLSFragment: tlsFragment}, nil
+func newTCPDialer(dialer net.Dialer, tfoEnabled bool) (tcpDialer, error) {
+	return tfo.Dialer{Dialer: dialer, DisableTFO: !tfoEnabled}, nil
+}
+
+func dialerFromTCPDialer(dialer tcpDialer) net.Dialer {
+	return dialer.Dialer
 }

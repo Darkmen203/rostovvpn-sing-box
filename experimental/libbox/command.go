@@ -14,6 +14,7 @@ const (
 	CommandSetClashMode
 	CommandGetSystemProxyStatus
 	CommandSetSystemProxyEnabled
-
-	CommandGroupInfoOnly//rostovvpn
+	CommandConnections
+	CommandCloseConnection
+	CommandGetDeprecatedNotes
 )

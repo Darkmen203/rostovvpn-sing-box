@@ -4,10 +4,9 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/sagernet/sing-box/log"
-	"github.com/sagernet/sing-box/outbound"
+	"github.com/sagernet/sing-box/protocol/group"
 	E "github.com/sagernet/sing/common/exceptions"
-	"github.com/sagernet/sing/common/rw"
+	"github.com/sagernet/sing/common/varbin"
 )
 
 func (c *CommandClient) SelectOutbound(groupTag string, outboundTag string) error {
@@ -20,11 +19,11 @@ func (c *CommandClient) SelectOutbound(groupTag string, outboundTag string) erro
 	if err != nil {
 		return err
 	}
-	err = rw.WriteVString(conn, groupTag)
+	err = varbin.Write(conn, binary.BigEndian, groupTag)
 	if err != nil {
 		return err
 	}
-	err = rw.WriteVString(conn, outboundTag)
+	err = varbin.Write(conn, binary.BigEndian, outboundTag)
 	if err != nil {
 		return err
 	}
@@ -32,11 +31,11 @@ func (c *CommandClient) SelectOutbound(groupTag string, outboundTag string) erro
 }
 
 func (s *CommandServer) handleSelectOutbound(conn net.Conn) error {
-	groupTag, err := rw.ReadVString(conn)
+	groupTag, err := varbin.ReadValue[string](conn, binary.BigEndian)
 	if err != nil {
 		return err
 	}
-	outboundTag, err := rw.ReadVString(conn)
+	outboundTag, err := varbin.ReadValue[string](conn, binary.BigEndian)
 	if err != nil {
 		return err
 	}
@@ -44,18 +43,16 @@ func (s *CommandServer) handleSelectOutbound(conn net.Conn) error {
 	if service == nil {
 		return writeError(conn, E.New("service not ready"))
 	}
-	outboundGroup, isLoaded := service.instance.Router().Outbound(groupTag)
+	outboundGroup, isLoaded := service.instance.Outbound().Outbound(groupTag)
 	if !isLoaded {
 		return writeError(conn, E.New("selector not found: ", groupTag))
 	}
-	selector, isSelector := outboundGroup.(*outbound.Selector)
+	selector, isSelector := outboundGroup.(*group.Selector)
 	if !isSelector {
 		return writeError(conn, E.New("outbound is not a selector: ", groupTag))
 	}
 	if !selector.SelectOutbound(outboundTag) {
 		return writeError(conn, E.New("outbound not found in selector: ", outboundTag))
 	}
-	log.Info("RostovVPN! Command Select", outboundTag)
-	s.urlTestUpdate.Update(2)
 	return writeError(conn, nil)
 }
