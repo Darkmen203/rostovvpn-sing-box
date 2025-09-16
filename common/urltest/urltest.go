@@ -2,40 +2,39 @@ package urltest
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
-	"github.com/imkira/go-observer/v2"
-	"github.com/sagernet/sing/common"
+	"github.com/sagernet/sing-box/adapter"
+	C "github.com/sagernet/sing-box/constant"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
+	"github.com/sagernet/sing/common/ntp"
 )
 
-type History struct {
-	Time  time.Time `json:"time"`
-	Delay uint16    `json:"delay"`
-}
+var _ adapter.URLTestHistoryStorage = (*HistoryStorage)(nil)
 
 type HistoryStorage struct {
 	access       sync.RWMutex
-	delayHistory map[string]*History
-	updateHook   observer.Property[int]
+	delayHistory map[string]*adapter.URLTestHistory
+	updateHook   chan<- struct{}
 }
 
 func NewHistoryStorage() *HistoryStorage {
 	return &HistoryStorage{
-		delayHistory: make(map[string]*History),
+		delayHistory: make(map[string]*adapter.URLTestHistory),
 	}
 }
 
-func (s *HistoryStorage) SetHook(hook observer.Property[int]) {
+func (s *HistoryStorage) SetHook(hook chan<- struct{}) {
 	s.updateHook = hook
 }
 
-func (s *HistoryStorage) LoadURLTestHistory(tag string) *History {
+func (s *HistoryStorage) LoadURLTestHistory(tag string) *adapter.URLTestHistory {
 	if s == nil {
 		return nil
 	}
@@ -47,29 +46,30 @@ func (s *HistoryStorage) LoadURLTestHistory(tag string) *History {
 func (s *HistoryStorage) DeleteURLTestHistory(tag string) {
 	s.access.Lock()
 	delete(s.delayHistory, tag)
-	s.access.Unlock()
 	s.notifyUpdated()
+	s.access.Unlock()
 }
 
-func (s *HistoryStorage) StoreURLTestHistory(tag string, history *History) {
+func (s *HistoryStorage) StoreURLTestHistory(tag string, history *adapter.URLTestHistory) {
 	s.access.Lock()
 	s.delayHistory[tag] = history
-	s.access.Unlock()
 	s.notifyUpdated()
+	s.access.Unlock()
 }
 
 func (s *HistoryStorage) notifyUpdated() {
 	updateHook := s.updateHook
 	if updateHook != nil {
-		updateHook.Update(1)
-		// select {
-		// case updateHook <- struct{}{}:
-		// default:
-		// }
+		select {
+		case updateHook <- struct{}{}:
+		default:
+		}
 	}
 }
 
 func (s *HistoryStorage) Close() error {
+	s.access.Lock()
+	defer s.access.Unlock()
 	s.updateHook = nil
 	return nil
 }
@@ -99,7 +99,7 @@ func URLTest(ctx context.Context, link string, detour N.Dialer) (t uint16, err e
 		return
 	}
 	defer instance.Close()
-	if earlyConn, isEarlyConn := common.Cast[N.EarlyConn](instance); isEarlyConn && earlyConn.NeedHandshake() {
+	if N.NeedHandshakeForWrite(instance) {
 		start = time.Now()
 	}
 	req, err := http.NewRequest(http.MethodHead, link, nil)
@@ -111,10 +111,15 @@ func URLTest(ctx context.Context, link string, detour N.Dialer) (t uint16, err e
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 				return instance, nil
 			},
+			TLSClientConfig: &tls.Config{
+				Time:    ntp.TimeFuncFromContext(ctx),
+				RootCAs: adapter.RootPoolFromContext(ctx),
+			},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		Timeout: C.TCPTimeout,
 	}
 	defer client.CloseIdleConnections()
 	resp, err := client.Do(req.WithContext(ctx))

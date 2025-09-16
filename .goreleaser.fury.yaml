@@ -6,17 +6,18 @@ builds:
       - -v
       - -trimpath
     ldflags:
-      - -X github.com/sagernet/sing-box/constant.Version={{ .Version }} -s -w -buildid=
+      - -X github.com/sagernet/sing-box/constant.Version={{ .Version }}
+      - -s
+      - -buildid=
     tags:
       - with_gvisor
       - with_quic
       - with_dhcp
       - with_wireguard
-      - with_ech
       - with_utls
-      - with_reality_server
       - with_acme
       - with_clash_api
+      - with_tailscale
     env:
       - CGO_ENABLED=0
     targets:
@@ -26,6 +27,7 @@ builds:
       - linux_arm_7
       - linux_s390x
       - linux_riscv64
+      - linux_mips64le
     mod_timestamp: '{{ .CommitTimestamp }}'
 snapshot:
   name_template: "{{ .Version }}.{{ .ShortCommit }}"
@@ -47,11 +49,26 @@ nfpms:
     contents:
       - src: release/config/config.json
         dst: /etc/sing-box/config.json
-        type: config
+        type: "config|noreplace"
+
       - src: release/config/sing-box.service
         dst: /usr/lib/systemd/system/sing-box.service
       - src: release/config/sing-box@.service
         dst: /usr/lib/systemd/system/sing-box@.service
+      - src: release/config/sing-box.sysusers
+        dst: /usr/lib/sysusers.d/sing-box.conf
+      - src: release/config/sing-box.rules
+        dst: /usr/share/polkit-1/rules.d/sing-box.rules
+      - src: release/config/sing-box-split-dns.xml
+        dst: /usr/share/dbus-1/system.d/sing-box-split-dns.conf
+
+      - src: release/completions/sing-box.bash
+        dst: /usr/share/bash-completion/completions/sing-box.bash
+      - src: release/completions/sing-box.fish
+        dst: /usr/share/fish/vendor_completions.d/sing-box.fish
+      - src: release/completions/sing-box.zsh
+        dst: /usr/share/zsh/site-functions/_sing-box
+
       - src: LICENSE
         dst: /usr/share/licenses/sing-box/LICENSE
     deb:

@@ -5,55 +5,78 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"net"
-	"net/netip"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/common/tlsfragment"
+	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	"github.com/sagernet/sing/common/ntp"
 )
 
 type STDClientConfig struct {
-	config *tls.Config
+	ctx                   context.Context
+	config                *tls.Config
+	fragment              bool
+	fragmentFallbackDelay time.Duration
+	recordFragment        bool
 }
 
-func (s *STDClientConfig) ServerName() string {
-	return s.config.ServerName
+func (c *STDClientConfig) ServerName() string {
+	return c.config.ServerName
 }
 
-func (s *STDClientConfig) SetServerName(serverName string) {
-	s.config.ServerName = serverName
+func (c *STDClientConfig) SetServerName(serverName string) {
+	c.config.ServerName = serverName
 }
 
-func (s *STDClientConfig) NextProtos() []string {
-	return s.config.NextProtos
+func (c *STDClientConfig) NextProtos() []string {
+	return c.config.NextProtos
 }
 
-func (s *STDClientConfig) SetNextProtos(nextProto []string) {
-	s.config.NextProtos = nextProto
+func (c *STDClientConfig) SetNextProtos(nextProto []string) {
+	c.config.NextProtos = nextProto
 }
 
-func (s *STDClientConfig) Config() (*STDConfig, error) {
-	return s.config, nil
+func (c *STDClientConfig) STDConfig() (*STDConfig, error) {
+	return c.config, nil
 }
 
-func (s *STDClientConfig) Client(conn net.Conn) (Conn, error) {
-	return tls.Client(conn, s.config), nil
+func (c *STDClientConfig) Client(conn net.Conn) (Conn, error) {
+	if c.recordFragment {
+		conn = tf.NewConn(conn, c.ctx, c.fragment, c.recordFragment, c.fragmentFallbackDelay)
+	}
+	return tls.Client(conn, c.config), nil
 }
 
-func (s *STDClientConfig) Clone() Config {
-	return &STDClientConfig{s.config.Clone()}
+func (c *STDClientConfig) Clone() Config {
+	return &STDClientConfig{
+		ctx:                   c.ctx,
+		config:                c.config.Clone(),
+		fragment:              c.fragment,
+		fragmentFallbackDelay: c.fragmentFallbackDelay,
+		recordFragment:        c.recordFragment,
+	}
 }
 
-func NewSTDClient(ctx context.Context, serverAddress string, options option.OutboundTLSOptions) (Config, error) {
+func (c *STDClientConfig) ECHConfigList() []byte {
+	return c.config.EncryptedClientHelloConfigList
+}
+
+func (c *STDClientConfig) SetECHConfigList(EncryptedClientHelloConfigList []byte) {
+	c.config.EncryptedClientHelloConfigList = EncryptedClientHelloConfigList
+}
+
+func NewSTDClient(ctx context.Context, logger logger.ContextLogger, serverAddress string, options option.OutboundTLSOptions) (Config, error) {
 	var serverName string
 	if options.ServerName != "" {
 		serverName = options.ServerName
 	} else if serverAddress != "" {
-		if _, err := netip.ParseAddr(serverName); err != nil {
-			serverName = serverAddress
-		}
+		serverName = serverAddress
 	}
 	if serverName == "" && !options.Insecure {
 		return nil, E.New("missing server_name or insecure=true")
@@ -61,14 +84,9 @@ func NewSTDClient(ctx context.Context, serverAddress string, options option.Outb
 
 	var tlsConfig tls.Config
 	tlsConfig.Time = ntp.TimeFuncFromContext(ctx)
-	if options.DisableSNI {
-		tlsConfig.ServerName = "127.0.0.1"
-	} else {
-		if options.TLSTricks != nil && options.TLSTricks.MixedCaseSNI {
-			tlsConfig.ServerName = randomizeCase(tlsConfig.ServerName)
-		} else {
-			tlsConfig.ServerName = serverName
-		}
+	tlsConfig.RootCAs = adapter.RootPoolFromContext(ctx)
+	if !options.DisableSNI {
+		tlsConfig.ServerName = serverName
 	}
 	if options.Insecure {
 		tlsConfig.InsecureSkipVerify = options.Insecure
@@ -76,11 +94,15 @@ func NewSTDClient(ctx context.Context, serverAddress string, options option.Outb
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyConnection = func(state tls.ConnectionState) error {
 			verifyOptions := x509.VerifyOptions{
+				Roots:         tlsConfig.RootCAs,
 				DNSName:       serverName,
 				Intermediates: x509.NewCertPool(),
 			}
 			for _, cert := range state.PeerCertificates[1:] {
 				verifyOptions.Intermediates.AddCert(cert)
+			}
+			if tlsConfig.Time != nil {
+				verifyOptions.CurrentTime = tlsConfig.Time()
 			}
 			_, err := state.PeerCertificates[0].Verify(verifyOptions)
 			return err
@@ -132,5 +154,24 @@ func NewSTDClient(ctx context.Context, serverAddress string, options option.Outb
 		}
 		tlsConfig.RootCAs = certPool
 	}
-	return &STDClientConfig{&tlsConfig}, nil
+	var config Config = &STDClientConfig{ctx, &tlsConfig, options.Fragment, time.Duration(options.FragmentFallbackDelay), options.RecordFragment}
+	if options.ECH != nil && options.ECH.Enabled {
+		var err error
+		config, err = parseECHClientConfig(ctx, config.(ECHCapableConfig), options)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if options.KernelRx || options.KernelTx {
+		if !C.IsLinux {
+			return nil, E.New("kTLS is only supported on Linux")
+		}
+		config = &KTLSClientConfig{
+			Config:   config,
+			logger:   logger,
+			kernelTx: options.KernelTx,
+			kernelRx: options.KernelRx,
+		}
+	}
+	return config, nil
 }

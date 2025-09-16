@@ -1,4 +1,21 @@
-!!! quote "sing-box 1.8.0 中的更改"
+---
+icon: material/alert-decagram
+---
+
+!!! quote "sing-box 1.13.0 中的更改"
+
+    :material-plus: [kernel_tx](#kernel_tx)  
+    :material-plus: [kernel_rx](#kernel_rx)
+
+!!! quote "sing-box 1.12.0 中的更改"
+
+    :material-plus: [tls_fragment](#tls_fragment)  
+    :material-plus: [tls_fragment_fallback_delay](#tls_fragment_fallback_delay)  
+    :material-plus: [tls_record_fragment](#tls_record_fragment)  
+    :material-delete-clock: [ech.pq_signature_schemes_enabled](#pq_signature_schemes_enabled)  
+    :material-delete-clock: [ech.dynamic_record_sizing_disabled](#dynamic_record_sizing_disabled)
+
+!!! quote "sing-box 1.10.0 中的更改"
 
     :material-alert-decagram: [utls](#utls)  
 
@@ -16,6 +33,8 @@
   "certificate_path": "",
   "key": [],
   "key_path": "",
+  "kernel_tx": false,
+  "kernel_rx": false,
   "acme": {
     "domain": [],
     "data_directory": "",
@@ -34,17 +53,20 @@
   },
   "ech": {
     "enabled": false,
-    "pq_signature_schemes_enabled": false,
-    "dynamic_record_sizing_disabled": false,
     "key": [],
-    "key_path": ""
+    "key_path": "",
+
+    // 废弃的
+    
+    "pq_signature_schemes_enabled": false,
+    "dynamic_record_sizing_disabled": false
   },
   "reality": {
     "enabled": false,
     "handshake": {
       "server": "google.com",
       "server_port": 443,
-
+      
       ... // 拨号字段
     },
     "private_key": "UuMBgl7MXTPx9inmQp2UC7Jcnwc6XYbwDNebonM-FCc",
@@ -70,6 +92,9 @@
   "cipher_suites": [],
   "certificate": [],
   "certificate_path": "",
+  "fragment": false,
+  "fragment_fallback_delay": "",
+  "record_fragment": false,
   "ech": {
     "enabled": false,
     "pq_signature_schemes_enabled": false,
@@ -176,11 +201,19 @@ TLS 版本值：
 
 #### certificate_path
 
+!!! note ""
+
+    文件更改时将自动重新加载。
+
 服务器 PEM 证书路径。
 
 #### key
 
 ==仅服务器==
+
+!!! note ""
+
+    文件更改时将自动重新加载。
 
 服务器 PEM 私钥行数组。
 
@@ -190,32 +223,71 @@ TLS 版本值：
 
 服务器 PEM 私钥路径。
 
+#### kernel_tx
+
+!!! question "自 sing-box 1.13.0 起"
+
+!!! quote ""
+
+    仅支持 Linux 5.1+，如果可能，使用较新的内核。
+
+!!! quote ""
+
+    仅支持 TLS 1.3。
+
+!!! warning ""
+
+    kTLS TX 仅当 `splice(2)` 可用时（两端经过握手后必须为没有附加协议的 TCP 或 TLS）才能提高性能；否则肯定会降低性能。
+
+启用内核 TLS 发送支持。
+
+#### kernel_rx
+
+!!! question "自 sing-box 1.13.0 起"
+
+!!! quote ""
+
+    仅支持 Linux 5.1+，如果可能，使用较新的内核。
+
+!!! quote ""
+
+    仅支持 TLS 1.3。
+
+!!! failure ""
+
+    即使使用 `splice(2)`，kTLS RX 也肯定会降低性能，因此不建议启用。
+
+启用内核 TLS 接收支持。
+
+## 自定义 TLS 支持
+
+!!! info "QUIC 支持"
+
+    只有 ECH 在 QUIC 中被支持.
+
 #### utls
 
 ==仅客户端==
 
-!!! note ""
+!!! failure ""
 
-    uTLS 维护不善且其效果可能未经证实，使用风险自负。
+    没有证据表明 GFW 根据 TLS 客户端指纹检测并阻止服务器，并且，使用一个未经安全审查的不完美模拟可能带来安全隐患。
 
 uTLS 是 "crypto/tls" 的一个分支，它提供了 ClientHello 指纹识别阻力。
 
 可用的指纹值：
 
-!!! question "自 sing-box 1.8.0 起"
+!!! warning "已在 sing-box 1.10.0 移除"
 
-    :material-plus: chrome_psk  
-    :material-plus: chrome_psk_shuffle  
-    :material-plus: chrome_padding_psk_shuffle  
-    :material-plus: chrome_pq  
-    :material-plus: chrome_pq_psk
+    一些旧 chrome 指纹已被删除，并将会退到 chrome：
+
+    :material-close: chrome_psk  
+    :material-close: chrome_psk_shuffle  
+    :material-close: chrome_padding_psk_shuffle  
+    :material-close: chrome_pq  
+    :material-close: chrome_pq_psk
 
 * chrome
-* chrome_psk
-* chrome_psk_shuffle
-* chrome_padding_psk_shuffle
-* chrome_pq
-* chrome_pq_psk
 * firefox
 * edge
 * safari
@@ -235,19 +307,6 @@ ECH (Encrypted Client Hello) 是一个 TLS 扩展，它允许客户端加密其 
 
 ECH 配置和密钥可以通过 `sing-box generate ech-keypair [--pq-signature-schemes-enabled]` 生成。
 
-#### pq_signature_schemes_enabled
-
-启用对后量子对等证书签名方案的支持。
-
-建议匹配 `sing-box generate ech-keypair` 的参数。
-
-#### dynamic_record_sizing_disabled
-
-禁用 TLS 记录的自适应大小调整。
-
-如果为 true，则始终使用最大可能的 TLS 记录大小。
-如果为 false，则可能会调整 TLS 记录的大小以尝试改善延迟。
-
 #### key
 
 ==仅服务器==
@@ -257,6 +316,10 @@ ECH PEM 密钥行数组
 #### key_path
 
 ==仅服务器==
+
+!!! note ""
+
+    文件更改时将自动重新加载。
 
 ECH PEM 密钥路径
 
@@ -275,6 +338,62 @@ ECH PEM 配置行数组
 ECH PEM 配置路径
 
 如果为空，将尝试从 DNS 加载。
+
+#### pq_signature_schemes_enabled
+
+!!! failure "已在 sing-box 1.12.0 废弃"
+
+    ECH 支持已在 sing-box 1.12.0 迁移至使用标准库，但标准库不支持后量子对等证书签名方案，因此 `pq_signature_schemes_enabled` 已被弃用且不再工作。
+
+启用对后量子对等证书签名方案的支持。
+
+建议匹配 `sing-box generate ech-keypair` 的参数。
+
+#### dynamic_record_sizing_disabled
+
+!!! failure "已在 sing-box 1.12.0 废弃"
+
+    `dynamic_record_sizing_disabled` 与 ECH 无关，是错误添加的，现已弃用且不再工作。
+
+禁用 TLS 记录的自适应大小调整。
+
+如果为 true，则始终使用最大可能的 TLS 记录大小。
+如果为 false，则可能会调整 TLS 记录的大小以尝试改善延迟。
+
+#### tls_fragment
+
+!!! question "自 sing-box 1.12.0 起"
+
+==仅客户端==
+
+通过分段 TLS 握手数据包来绕过防火墙检测。
+
+此功能旨在规避基于**明文数据包匹配**的简单防火墙，不应该用于规避真的审查。
+
+由于性能不佳，请首先尝试 `tls_record_fragment`，且仅应用于已知被阻止的服务器名称。
+
+在 Linux、Apple 平台和需要管理员权限的 Windows 系统上，可自动检测等待时间。
+若无法自动检测，将回退使用 `tls_fragment_fallback_delay` 指定的固定等待时间。
+
+此外，若实际等待时间小于 20 毫秒，同样会回退至固定等待时间模式，因为此时判定目标处于本地或透明代理之后。
+
+#### tls_fragment_fallback_delay
+
+!!! question "自 sing-box 1.12.0 起"
+
+==仅客户端==
+
+当 TLS 分片功能无法自动判定等待时间时使用的回退值。
+
+默认使用 `500ms`。
+
+#### tls_record_fragment
+
+==仅客户端==
+
+!!! question "自 sing-box 1.12.0 起"
+
+通过分段 TLS 握手数据包到多个 TLS 记录来绕过防火墙检测。
 
 ### ACME 字段
 
@@ -384,7 +503,3 @@ ACME DNS01 验证字段。如果配置，将禁用其他验证方法。
 服务器与和客户端之间允许的最大时间差。
 
 默认禁用检查。
-
-### 重载
-
-对于服务器配置，如果修改，证书和密钥将自动重新加载。

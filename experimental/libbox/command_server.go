@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/imkira/go-observer/v2"
 	"github.com/sagernet/sing-box/common/urltest"
 	"github.com/sagernet/sing-box/experimental/clashapi"
 	"github.com/sagernet/sing-box/log"
@@ -31,9 +30,11 @@ type CommandServer struct {
 	service    *BoxService
 
 	// These channels only work with a single client. if multi-client support is needed, replace with Subscriber/Observer
-	urlTestUpdate observer.Property[int]
+	urlTestUpdate chan struct{}
 	modeUpdate    chan struct{}
 	logReset      chan struct{}
+
+	closedConnections []Connection
 }
 
 type CommandServerHandler interface {
@@ -48,7 +49,7 @@ func NewCommandServer(handler CommandServerHandler, maxLines int32) *CommandServ
 		handler:       handler,
 		maxLines:      int(maxLines),
 		subscriber:    observable.NewSubscriber[string](128),
-		urlTestUpdate: observer.NewProperty(0),
+		urlTestUpdate: make(chan struct{}, 1),
 		modeUpdate:    make(chan struct{}, 1),
 		logReset:      make(chan struct{}, 1),
 	}
@@ -59,34 +60,17 @@ func NewCommandServer(handler CommandServerHandler, maxLines int32) *CommandServ
 func (s *CommandServer) SetService(newService *BoxService) {
 	if newService != nil {
 		service.PtrFromContext[urltest.HistoryStorage](newService.ctx).SetHook(s.urlTestUpdate)
-
-		if clashServer := newService.instance.Router().ClashServer(); clashServer != nil {
-			clashServer.(*clashapi.Server).SetModeUpdateHook(s.modeUpdate)
-		}
-		s.savedLines.Init()
-		select {
-		case s.logReset <- struct{}{}:
-		default:
-		}
+		newService.clashServer.(*clashapi.Server).SetModeUpdateHook(s.modeUpdate)
 	}
 	s.service = newService
 	s.notifyURLTestUpdate()
 }
 
-func (s *CommandServer) ResetLog() {
-	s.savedLines.Init()
+func (s *CommandServer) notifyURLTestUpdate() {
 	select {
-	case s.logReset <- struct{}{}:
+	case s.urlTestUpdate <- struct{}{}:
 	default:
 	}
-}
-
-func (s *CommandServer) notifyURLTestUpdate() {
-	// select {
-	// case s.urlTestUpdate <- struct{}{}:
-	// default:
-	// }
-	s.urlTestUpdate.Update(1)
 }
 
 func (s *CommandServer) Start() error {
@@ -171,9 +155,7 @@ func (s *CommandServer) handleConnection(conn net.Conn) error {
 	case CommandCloseConnections:
 		return s.handleCloseConnections(conn)
 	case CommandGroup:
-		return s.handleGroupConn(conn, false)
-	case CommandGroupInfoOnly:
-		return s.handleGroupConn(conn, true)
+		return s.handleGroupConn(conn)
 	case CommandSelectOutbound:
 		return s.handleSelectOutbound(conn)
 	case CommandURLTest:
@@ -188,6 +170,12 @@ func (s *CommandServer) handleConnection(conn net.Conn) error {
 		return s.handleGetSystemProxyStatus(conn)
 	case CommandSetSystemProxyEnabled:
 		return s.handleSetSystemProxyEnabled(conn)
+	case CommandConnections:
+		return s.handleConnectionsConn(conn)
+	case CommandCloseConnection:
+		return s.handleCloseConnection(conn)
+	case CommandGetDeprecatedNotes:
+		return s.handleGetDeprecatedNotes(conn)
 	default:
 		return E.New("unknown command: ", command)
 	}
