@@ -1,4 +1,4 @@
-//go:build android && go1.25
+//go:build android && !go1.25
 // +build android,!go1.25
 package libbox
 
